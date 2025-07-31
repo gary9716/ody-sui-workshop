@@ -1,6 +1,6 @@
 module lesson_one::lesson_one {
     use std::ascii::{Self, String};
-    use sui::package;
+    use sui::{clock::Clock, package};
 
     // === Imports ===
 
@@ -34,6 +34,7 @@ module lesson_one::lesson_one {
         member_id: ID,
         name: String,
         img_url: String,
+        timestamp: u64,
     }
 
     // === Method Aliases ===
@@ -64,9 +65,10 @@ module lesson_one::lesson_one {
 
     public fun update_with_different_signer(rookie: &mut Rookie, ctx: &TxContext) {
         assert!(rookie.creator != ctx.sender(), EIsOwner);
+        rookie.signer = option::some(ctx.sender());
     }
 
-    public fun upgrade(rookie: Rookie, ctx: &mut TxContext) {
+    public fun upgrade(rookie: Rookie, clock: &Clock, ctx: &mut TxContext) {
         let Rookie {
             id,
             creator,
@@ -87,6 +89,7 @@ module lesson_one::lesson_one {
             member_id: id.to_inner(),
             name,
             img_url,
+            timestamp: clock.timestamp_ms(),
         });
         transfer::transfer(
             Member {
