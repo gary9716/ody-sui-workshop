@@ -12,7 +12,8 @@ module lesson_one::lesson_one {
 
     // === Structs ===
     public struct LESSON_ONE has drop {}
-    public struct Tutor has key {
+
+    public struct AdminCap has key {
         id: UID,
     }
 
@@ -106,6 +107,8 @@ module lesson_one::lesson_one {
     // === Admin Functions ===
     fun init(otw: LESSON_ONE, ctx: &mut TxContext) {
         package::claim_and_keep(otw, ctx);
+
+        transfer::transfer(AdminCap { id: object::new(ctx) }, ctx.sender());
     }
 
     // === Package Functions ===
