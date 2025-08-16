@@ -1,6 +1,14 @@
 module lesson_one::lesson_one {
     use std::ascii::{Self, String};
-    use sui::{clock::Clock, package};
+    use sui::{
+        clock::Clock,
+        coin::Coin,
+        dynamic_field as df,
+        dynamic_object_field as dof,
+        package,
+        sui::SUI,
+        vec_set::{Self, VecSet}
+    };
 
     // === Imports ===
 
@@ -116,4 +124,184 @@ module lesson_one::lesson_one {
     // === Private Functions ===
 
     // === Test Functions ===
+
+    // === Lesson<Two> ===
+
+    const ENoItemListed: u64 = 404;
+
+    public struct MarktetPlace has key {
+        id: UID,
+        whitelist: VecSet<ID>,
+    }
+
+    public struct Listing<Item> has key, store {
+        id: UID,
+        owner: address,
+        price: u64,
+        item: Item,
+    }
+
+    public fun create_market(_cap: &AdminCap, ctx: &mut TxContext) {
+        let market = MarktetPlace { id: object::new(ctx), whitelist: vec_set::empty() };
+
+        transfer::share_object(market);
+    }
+
+    public fun add_whitelist(_cap: &AdminCap, market: &mut MarktetPlace, id: ID) {
+        market.whitelist.insert(id);
+    }
+
+    public fun remove_whitelist(_cap: &AdminCap, market: &mut MarktetPlace, id: ID) {
+        market.whitelist.remove(&id);
+    }
+
+    // @return Rookie object
+    public fun new_rookie(name: String, ctx: &mut TxContext): Rookie {
+        Rookie {
+            id: object::new(ctx),
+            creator: ctx.sender(),
+            name,
+            img_url: ascii::string(b""),
+            signer: option::none(),
+        }
+    }
+
+    public fun list_rookie_with_df(
+        market: &mut MarktetPlace,
+        rookie: Rookie,
+        price: u64,
+        ctx: &mut TxContext,
+    ) {
+        let id = object::id(&rookie);
+        let listing = Listing {
+            id: object::new(ctx),
+            owner: ctx.sender(),
+            price,
+            item: rookie,
+        };
+        df::add(&mut market.id, id, listing);
+    }
+
+    public fun list_rookie_with_dof(
+        market: &mut MarktetPlace,
+        rookie: Rookie,
+        price: u64,
+        ctx: &mut TxContext,
+    ) {
+        let id = object::id(&rookie);
+        let listing = Listing {
+            id: object::new(ctx),
+            owner: ctx.sender(),
+            price,
+            item: rookie,
+        };
+        dof::add(&mut market.id, id, listing);
+    }
+
+    public fun delist_rookie_with_df(market: &mut MarktetPlace, id: ID, ctx: &TxContext): Rookie {
+        let listing = df::remove(&mut market.id, id);
+
+        let Listing {
+            id,
+            owner,
+            price: _,
+            item,
+        } = listing;
+
+        assert!(owner == ctx.sender());
+        object::delete(id);
+
+        item
+    }
+
+    public fun delist_rookie_with_dof(market: &mut MarktetPlace, id: ID, ctx: &TxContext): Rookie {
+        let listing = dof::remove(&mut market.id, id);
+
+        let Listing {
+            id,
+            owner,
+            price: _,
+            item,
+        } = listing;
+
+        assert!(owner == ctx.sender());
+        object::delete(id);
+
+        item
+    }
+
+    public fun buy(
+        market: &mut MarktetPlace,
+        id: ID,
+        coin: &mut Coin<SUI>,
+        ctx: &mut TxContext,
+    ): Rookie {
+        if (df::exists_(&market.id, id)) {
+            let listing = df::remove(&mut market.id, id);
+
+            let Listing {
+                id,
+                owner,
+                price,
+                item,
+            } = listing;
+
+            transfer::public_transfer(coin.split(price, ctx), owner);
+
+            object::delete(id);
+
+            return item
+        } else if (dof::exists_(&market.id, id)) {
+            let listing = dof::remove(&mut market.id, id);
+
+            let Listing {
+                id,
+                owner,
+                price,
+                item,
+            } = listing;
+
+            transfer::public_transfer(coin.split(price, ctx), owner);
+
+            object::delete(id);
+
+            return item
+        };
+
+        abort ENoItemListed
+    }
+
+    public fun whitelist_buy(market: &mut MarktetPlace, member: &Member, id: ID): Rookie {
+        assert!(market.whitelist.contains(&object::id(member)));
+
+        if (df::exists_(&market.id, id)) {
+            let listing = df::remove(&mut market.id, id);
+
+            let Listing {
+                id,
+                owner: _,
+                price: _,
+                item,
+            } = listing;
+
+            object::delete(id);
+
+            return item
+        } else if (dof::exists_(&market.id, id)) {
+            let listing = dof::remove(&mut market.id, id);
+
+            let Listing {
+                id,
+                owner: _,
+                price: _,
+                item,
+            } = listing;
+
+            object::delete(id);
+
+            return item
+        };
+
+        abort ENoItemListed
+    }
 }

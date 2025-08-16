@@ -1,7 +1,8 @@
 [package]
 name = "lesson_1"
 edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Move
-published-at = "0xd1f32dfb749c3008c4078c4824dde1a8944b5bd75e62852c717e261304572ff7"
+# published-at = "0xd1f32dfb749c3008c4078c4824dde1a8944b5bd75e62852c717e261304572ff7"
+published-at = "0xf655fe29188d529f19d3401914112af9825b836c7584abc69b7c7afb39070784"
 # license = ""           # e.g., "MIT", "GPL", "Apache 2.0"
 # authors = ["..."]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
 [dependencies]
